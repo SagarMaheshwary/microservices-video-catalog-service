@@ -1,9 +1,10 @@
-module github.com/sagarmaheshwary/microservices-upload-service
+module github.com/sagarmaheshwary/microservices-video-catalog-service
 
 go 1.21.1
 
 require (
 	github.com/gofor-little/env v1.0.18
+	github.com/rabbitmq/amqp091-go v1.10.0
 	github.com/rs/zerolog v1.32.0
 	google.golang.org/grpc v1.63.2
 )

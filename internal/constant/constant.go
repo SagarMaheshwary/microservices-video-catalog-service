@@ -10,3 +10,7 @@ const (
 	MessageNotFound            = "Resource Not Found"
 	MessageInternalServerError = "Internal Server Error"
 )
+
+const (
+	QueueVideoCatalogService = "VideoCatalogService"
+)

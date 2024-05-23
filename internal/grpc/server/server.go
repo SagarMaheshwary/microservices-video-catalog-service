@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/sagarmaheshwary/microservices-upload-service/internal/config"
-	"github.com/sagarmaheshwary/microservices-upload-service/internal/lib/log"
+	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/config"
+	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/log"
 	"google.golang.org/grpc"
 )
 

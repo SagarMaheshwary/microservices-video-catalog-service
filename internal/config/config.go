@@ -6,19 +6,27 @@ import (
 	"strconv"
 
 	"github.com/gofor-little/env"
-	"github.com/sagarmaheshwary/microservices-upload-service/internal/helper"
-	"github.com/sagarmaheshwary/microservices-upload-service/internal/lib/log"
+	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/helper"
+	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/log"
 )
 
 var conf *Config
 
 type Config struct {
 	GRPCServer *grpcServer
+	AMQP       *amqp
 }
 
 type grpcServer struct {
 	Host string
 	Port int
+}
+
+type amqp struct {
+	Host     string
+	Port     int
+	Username string
+	Password string
 }
 
 func Init() {
@@ -36,16 +44,32 @@ func Init() {
 		log.Error("Invalid GRPC_PORT value %v", err)
 	}
 
+	amqpPort, err := strconv.Atoi(Getenv("AMQP_PORT", "5672"))
+
+	if err != nil {
+		log.Error("Invalid AMQP_PORT value %v", err)
+	}
+
 	conf = &Config{
 		GRPCServer: &grpcServer{
 			Host: Getenv("GRPC_HOST", "localhost"),
 			Port: port,
+		},
+		AMQP: &amqp{
+			Host:     Getenv("AMQP_HOST", "localhost"),
+			Port:     amqpPort,
+			Username: Getenv("AMQP_USERNAME", "guest"),
+			Password: Getenv("AMQP_PASSWORD", "guest"),
 		},
 	}
 }
 
 func GetgrpcServer() *grpcServer {
 	return conf.GRPCServer
+}
+
+func Getamqp() *amqp {
+	return conf.AMQP
 }
 
 func Getenv(key string, defaultVal string) string {
