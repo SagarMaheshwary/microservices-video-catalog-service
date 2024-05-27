@@ -15,6 +15,17 @@ var conf *Config
 type Config struct {
 	GRPCServer *grpcServer
 	AMQP       *amqp
+	Database   *database
+}
+
+type database struct {
+	Host     string
+	Port     string
+	Username string
+	Password string
+	Database string
+	SSLMode  string
+	Timezone string
 }
 
 type grpcServer struct {
@@ -61,6 +72,15 @@ func Init() {
 			Username: Getenv("AMQP_USERNAME", "guest"),
 			Password: Getenv("AMQP_PASSWORD", "guest"),
 		},
+		Database: &database{
+			Host:     Getenv("DB_HOST", "localhost"),
+			Port:     Getenv("DB_PORT", "5432"),
+			Username: Getenv("DB_USERNAME", "postgres"),
+			Password: Getenv("DB_PASSWORD", "password"),
+			Database: Getenv("DB_DATABASE", "microservices_video_catalog_service"),
+			SSLMode:  Getenv("DB_SSLMODE", "disable"),
+			Timezone: Getenv("DB_TIMEZONE", "UTC"),
+		},
 	}
 }
 
@@ -70,6 +90,10 @@ func GetgrpcServer() *grpcServer {
 
 func Getamqp() *amqp {
 	return conf.AMQP
+}
+
+func GetDatabase() *database {
+	return conf.Database
 }
 
 func Getenv(key string, defaultVal string) string {
