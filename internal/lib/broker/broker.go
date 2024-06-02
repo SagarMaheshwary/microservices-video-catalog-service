@@ -25,7 +25,7 @@ func Connect() {
 	Conn, err = amqplib.Dial(address)
 
 	if err != nil {
-		log.Error("Broker connection error %v", err)
+		log.Fatal("Broker connection error %v", err)
 	}
 
 	log.Info("Broker connected on %q", address)

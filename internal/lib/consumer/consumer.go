@@ -5,6 +5,7 @@ import (
 
 	amqplib "github.com/rabbitmq/amqp091-go"
 	cons "github.com/sagarmaheshwary/microservices-video-catalog-service/internal/constant"
+	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/handler"
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/broker"
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/log"
 )
@@ -49,14 +50,28 @@ func (c *Consumer) Consume() {
 
 	go func() {
 		for message := range messages {
-			s := broker.MessageType{}
-			json.Unmarshal(message.Body, &s)
-			log.Info("Message received %#v", s.Data)
+			m := broker.MessageType{}
 
-			// switch s.Key {
-			// case:
+			json.Unmarshal(message.Body, &m)
+			log.Info("Message received")
 
-			// }
+			switch m.Key {
+			case cons.MessageTypeVideoEncodingCompleted:
+				type MessageType struct {
+					Key  string                         `json:"key"`
+					Data handler.VideoEncodingCompleted `json:"data"`
+				}
+
+				d := new(MessageType)
+
+				json.Unmarshal(message.Body, &d)
+
+				err := handler.ProcessVideoEncodingCompleted(&d.Data)
+
+				if err == nil {
+					message.Ack(false)
+				}
+			}
 		}
 	}()
 

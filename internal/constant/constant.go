@@ -14,3 +14,7 @@ const (
 const (
 	QueueVideoCatalogService = "VideoCatalogService"
 )
+
+const (
+	MessageTypeVideoEncodingCompleted = "VideoEncodingCompleted"
+)

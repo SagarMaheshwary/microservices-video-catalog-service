@@ -7,6 +7,7 @@ type Video struct {
 	UserId      int       `json:"user_id"`
 	Title       string    `json:"title"`
 	Description string    `json:"description"`
+	Slug        string    `json:"slug"`
 	Resolution  string    `json:"resolution"`
 	Duration    int       `json:"duration"`
 	PublishedAt time.Time `json:"published_at"`

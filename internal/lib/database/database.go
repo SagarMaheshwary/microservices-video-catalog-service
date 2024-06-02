@@ -29,10 +29,8 @@ func Connect() {
 	DB, err = gorm.Open(postgres.Open(dns), &gorm.Config{})
 
 	if err != nil {
-		log.Error("Database failed to connect on %q: %v", dns, err)
+		log.Fatal("Database failed to connect on %q: %v", dns, err)
 	}
-
-	DB.Raw("SELECT 1+1")
 
 	log.Info("Database server connected on %q", dns)
 }
