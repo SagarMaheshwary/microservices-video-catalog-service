@@ -51,9 +51,9 @@ func (c *Consumer) Consume() {
 	go func() {
 		for message := range messages {
 			m := broker.MessageType{}
-
 			json.Unmarshal(message.Body, &m)
-			log.Info("Message received")
+
+			log.Info("Message received %q: %v", m.Key, m.Data)
 
 			switch m.Key {
 			case cons.MessageTypeVideoEncodingCompleted:
