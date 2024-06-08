@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/helper"
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/database"
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/log"
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/model"
@@ -19,6 +18,7 @@ type VideoEncodingCompleted struct {
 	Duration    int                                `json:"duration"`
 	Resolutions []VideoEncodingCompletedResolution `json:"resolutions"`
 	UserId      int                                `json:"user_id"`
+	OriginalId  string                             `json:"original_id"`
 }
 
 type VideoEncodingCompletedResolution struct {
@@ -39,38 +39,48 @@ func ProcessVideoEncodingCompleted(data *VideoEncodingCompleted) error {
 
 	tx := database.DB.Begin()
 
-	video := new(model.Video)
+	v := new(model.Video)
 
-	video.Title = data.Title
-	video.Description = data.Description
-	video.Slug = fmt.Sprintf("%s-%s", helper.Slug(data.Title), helper.UniqueString(16))
-	video.PublishedAt = publishedAt
-	video.Duration = data.Duration
-	video.Resolution = fmt.Sprintf("%dx%d", data.Width, data.Height)
-	video.UserId = data.UserId
+	res := tx.First(&v, "original_id = ?", data.OriginalId)
 
-	if err = tx.Save(&video).Error; err != nil {
-		log.Error("Create video failed %v", err)
-		tx.Rollback()
+	if res.Error != nil {
+		v.Title = data.Title
+		v.Description = data.Description
+		v.OriginalId = data.OriginalId
+		v.PublishedAt = publishedAt
+		v.Duration = data.Duration
+		v.Resolution = fmt.Sprintf("%dx%d", data.Width, data.Height)
+		v.UserId = data.UserId
 
-		return err
+		if err = tx.Save(&v).Error; err != nil {
+			log.Error("Create video failed %v", err)
+			tx.Rollback()
+
+			return err
+		}
+
 	}
 
 	for _, r := range data.Resolutions {
 		for i, c := range r.Chunks {
 			vc := new(model.VideoChunk)
+			order := i + 1
 
-			vc.VideoId = int(video.Id)
-			vc.Order = i + 1
-			vc.Resolution = fmt.Sprintf("%dx%d", r.Width, r.Height)
-			vc.Encoding = r.Codec
-			vc.Url = c
+			res := tx.Where(map[string]interface{}{"video_id": v.Id, "order": order}).First(&vc)
 
-			if err = tx.Save(&vc).Error; err != nil {
-				log.Error("Create chunk failed %v", err)
-				tx.Rollback()
+			if res.Error != nil {
+				vc.VideoId = int(v.Id)
+				vc.Order = order
+				vc.Resolution = fmt.Sprintf("%dx%d", r.Width, r.Height)
+				vc.Encoding = r.Codec
+				vc.Url = c
 
-				return err
+				if err := tx.Save(&vc).Error; err != nil {
+					log.Error("Create chunk failed %v", err)
+					tx.Rollback()
+
+					return err
+				}
 			}
 		}
 	}
