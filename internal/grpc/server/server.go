@@ -6,6 +6,7 @@ import (
 
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/config"
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/log"
+	pb "github.com/sagarmaheshwary/microservices-video-catalog-service/internal/proto/video_catalog"
 	"google.golang.org/grpc"
 )
 
@@ -24,7 +25,7 @@ func Connect() {
 
 	grpcServer := grpc.NewServer(opts...)
 
-	//Register proto buf
+	pb.RegisterVideoCatalogServiceServer(grpcServer, &videoCatalogServer{})
 
 	log.Info("gRPC server started on %q", address)
 

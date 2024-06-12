@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/config"
+	userrpc "github.com/sagarmaheshwary/microservices-video-catalog-service/internal/grpc/client/user"
 	grpcsrv "github.com/sagarmaheshwary/microservices-video-catalog-service/internal/grpc/server"
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/broker"
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/consumer"
@@ -30,5 +31,6 @@ func main() {
 		c.Consume()
 	}()
 
+	userrpc.Connect()
 	grpcsrv.Connect()
 }

@@ -4,6 +4,7 @@ import (
 	"os"
 	"path"
 	"strconv"
+	"time"
 
 	"github.com/gofor-little/env"
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/helper"
@@ -16,6 +17,8 @@ type Config struct {
 	GRPCServer *grpcServer
 	AMQP       *amqp
 	Database   *database
+	S3         *s3
+	GRPCClient *grpcClient
 }
 
 type database struct {
@@ -40,6 +43,19 @@ type amqp struct {
 	Password string
 }
 
+type s3 struct {
+	Bucket             string
+	Region             string
+	AccessKey          string
+	SecretKey          string
+	PresignedUrlExpiry int
+}
+
+type grpcClient struct {
+	UserServiceurl string
+	Timeout        time.Duration
+}
+
 func Init() {
 	envPath := path.Join(helper.RootDir(), "..", ".env")
 
@@ -59,6 +75,18 @@ func Init() {
 
 	if err != nil {
 		log.Error("Invalid AMQP_PORT value %v", err)
+	}
+
+	s3UrlExpiry, err := strconv.Atoi(Getenv("AWS_S3_PRESIGNED_URL_EXPIRY", "0"))
+
+	if err != nil {
+		log.Error("Invalid AWS_S3_PRESIGNED_URL_EXPIRY value %v", err)
+	}
+
+	timeout, err := strconv.Atoi(Getenv("GRPC_CLIENT_TIMEOUT_SECONDS", "5"))
+
+	if err != nil {
+		log.Error("Invalid GRPC_CLIENT_TIMEOUT_SECONDS value %v", err)
 	}
 
 	conf = &Config{
@@ -81,6 +109,17 @@ func Init() {
 			SSLMode:  Getenv("DB_SSLMODE", "disable"),
 			Timezone: Getenv("DB_TIMEZONE", "UTC"),
 		},
+		S3: &s3{
+			Bucket:             Getenv("AWS_S3_BUCKET", ""),
+			Region:             Getenv("AWS_S3_REGION", ""),
+			AccessKey:          Getenv("AWS_S3_ACCESS_KEY", ""),
+			SecretKey:          Getenv("AWS_S3_SECRET_KEY", ""),
+			PresignedUrlExpiry: s3UrlExpiry,
+		},
+		GRPCClient: &grpcClient{
+			UserServiceurl: Getenv("GRPC_USER_SERVICE_URL", "localhost:5000"),
+			Timeout:        time.Duration(timeout) * time.Second,
+		},
 	}
 }
 
@@ -94,6 +133,14 @@ func Getamqp() *amqp {
 
 func GetDatabase() *database {
 	return conf.Database
+}
+
+func GetS3() *s3 {
+	return conf.S3
+}
+
+func GetgrpcClient() *grpcClient {
+	return conf.GRPCClient
 }
 
 func Getenv(key string, defaultVal string) string {
