@@ -13,6 +13,7 @@ import (
 	vcpb "github.com/sagarmaheshwary/microservices-video-catalog-service/internal/proto/video_catalog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"gorm.io/gorm/clause"
 )
 
 type videoCatalogServer struct {
@@ -23,8 +24,9 @@ func (v *videoCatalogServer) FindAll(ctx context.Context, data *vcpb.FindAllRequ
 	rows := []model.Video{}
 	videos := []*vcpb.Video{}
 
+	//@TODO: implement pagination
 	err := database.DB.
-		Select("id", "title", "description", "thumbnail_url", "published_at", "duration", "resolution").
+		Select("id", "title", "description", "thumbnail", "published_at", "duration", "resolution").
 		Order("created_at desc").
 		Find(&rows).Error
 
@@ -35,7 +37,7 @@ func (v *videoCatalogServer) FindAll(ctx context.Context, data *vcpb.FindAllRequ
 	}
 
 	for _, v := range rows {
-		thumbnailUrl, err := aws.CreateGetObjectPresignedUploadUrl(v.ThumbnailUrl)
+		thumbnailUrl, err := aws.CreateGetObjectPresignedUploadUrl(v.Thumbnail)
 
 		if err != nil {
 			log.Error("Unable to create thumbnail url: %v", err)
@@ -68,8 +70,8 @@ func (v *videoCatalogServer) FindById(ctx context.Context, data *vcpb.FindByIdRe
 	row := new(model.Video)
 
 	err := database.DB.
-		Select("id", "title", "description", "thumbnail_url", "published_at", "duration", "resolution").
-		Order("created_at desc").
+		Select("id", "title", "description", "thumbnail", "published_at", "duration", "resolution").
+		Order(clause.OrderByColumn{Column: clause.Column{Name: "created_at"}, Desc: true}).
 		First(&row).Error
 
 	if err != nil {
@@ -78,7 +80,7 @@ func (v *videoCatalogServer) FindById(ctx context.Context, data *vcpb.FindByIdRe
 		return nil, status.Errorf(codes.NotFound, cons.MessageNotFound)
 	}
 
-	thumbnailUrl, err := aws.CreateGetObjectPresignedUploadUrl(row.ThumbnailUrl)
+	thumbnailUrl, err := aws.CreateGetObjectPresignedUploadUrl(row.Thumbnail)
 
 	if err != nil {
 		log.Error("Unable to create thumbnail url: %v", err)

@@ -51,25 +51,28 @@ func (c *Consumer) Consume() {
 	go func() {
 		for message := range messages {
 			m := broker.MessageType{}
+
 			json.Unmarshal(message.Body, &m)
 
-			log.Info("Message received %q: %v", m.Key, m.Data)
+			log.Info("AMQP message received json %q: %s", m.Key, message.Body)
 
 			switch m.Key {
 			case cons.MessageTypeVideoEncodingCompleted:
 				type MessageType struct {
-					Key  string                         `json:"key"`
-					Data handler.VideoEncodingCompleted `json:"data"`
+					Key  string                                `json:"key"`
+					Data handler.VideoEncodingCompletedMessage `json:"data"`
 				}
 
 				d := new(MessageType)
 
 				json.Unmarshal(message.Body, &d)
 
-				err := handler.ProcessVideoEncodingCompleted(&d.Data)
+				err := handler.ProcessVideoEncodingCompletedMessage(&d.Data)
 
 				if err == nil {
 					message.Ack(false)
+				} else {
+					log.Error("Failed to process message %s: %s", m.Key, err)
 				}
 			}
 		}

@@ -9,27 +9,26 @@ import (
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/model"
 )
 
-type VideoEncodingCompleted struct {
-	Title        string                             `json:"title"`
-	Description  string                             `json:"description"`
-	PublishedAt  string                             `json:"published_at"`
-	Height       int                                `json:"height"`
-	Width        int                                `json:"width"`
-	Duration     int                                `json:"duration"`
-	Resolutions  []VideoEncodingCompletedResolution `json:"resolutions"`
-	UserId       int                                `json:"user_id"`
-	OriginalId   string                             `json:"original_id"`
-	ThumbnailUrl string                             `json:"thumbnail_url"`
+type VideoEncodingCompletedMessage struct {
+	Title              string              `json:"title"`
+	Description        string              `json:"description"`
+	PublishedAt        string              `json:"published_at"`
+	Height             int                 `json:"height"`
+	Width              int                 `json:"width"`
+	Duration           int                 `json:"duration"`
+	EncodedResolutions []EncodedResolution `json:"resolutions"`
+	UserId             int                 `json:"user_id"`
+	OriginalId         string              `json:"original_id"`
+	Thumbnail          string              `json:"thumbnail"`
 }
 
-type VideoEncodingCompletedResolution struct {
+type EncodedResolution struct {
 	Height int      `json:"height"`
 	Width  int      `json:"width"`
-	Codec  string   `json:"codec"`
 	Chunks []string `json:"chunks"`
 }
 
-func ProcessVideoEncodingCompleted(data *VideoEncodingCompleted) error {
+func ProcessVideoEncodingCompletedMessage(data *VideoEncodingCompletedMessage) error {
 	publishedAt, err := time.Parse(time.RFC3339, data.PublishedAt)
 
 	if err != nil {
@@ -45,6 +44,8 @@ func ProcessVideoEncodingCompleted(data *VideoEncodingCompleted) error {
 	res := tx.First(&v, "original_id = ?", data.OriginalId)
 
 	if res.Error != nil {
+		log.Info("Processing video row.")
+
 		v.Title = data.Title
 		v.Description = data.Description
 		v.OriginalId = data.OriginalId
@@ -52,7 +53,7 @@ func ProcessVideoEncodingCompleted(data *VideoEncodingCompleted) error {
 		v.Duration = data.Duration
 		v.Resolution = fmt.Sprintf("%dx%d", data.Width, data.Height)
 		v.UserId = data.UserId
-		v.ThumbnailUrl = data.ThumbnailUrl
+		v.Thumbnail = data.Thumbnail
 
 		if err = tx.Save(&v).Error; err != nil {
 			log.Error("Create video failed %v", err)
@@ -60,26 +61,24 @@ func ProcessVideoEncodingCompleted(data *VideoEncodingCompleted) error {
 
 			return err
 		}
-
 	}
 
-	for _, r := range data.Resolutions {
-		for i, c := range r.Chunks {
+	log.Info("Processing video_chunk rows.")
+
+	for _, r := range data.EncodedResolutions {
+		for _, c := range r.Chunks {
 			vc := new(model.VideoChunk)
-			order := i + 1
 			resolution := fmt.Sprintf("%dx%d", r.Width, r.Height)
 
-			res := tx.Where(map[string]interface{}{"video_id": v.Id, "order": order, "resolution": resolution}).First(&vc)
+			res := tx.Where(map[string]interface{}{"video_id": v.Id, "resolution": resolution, "filename": c}).First(&vc)
 
 			if res.Error != nil {
 				vc.VideoId = int(v.Id)
-				vc.Order = order
 				vc.Resolution = resolution
-				vc.Encoding = r.Codec
-				vc.Url = c
+				vc.Filename = c
 
 				if err := tx.Save(&vc).Error; err != nil {
-					log.Error("Create chunk failed %v", err)
+					log.Error("Create video_chunk failed %v", err)
 					tx.Rollback()
 
 					return err
@@ -93,6 +92,8 @@ func ProcessVideoEncodingCompleted(data *VideoEncodingCompleted) error {
 	if err != nil {
 		return err
 	}
+
+	log.Info("Transaction committed.")
 
 	return nil
 }
