@@ -20,6 +20,7 @@ type VideoEncodingCompletedMessage struct {
 	UserId             int                 `json:"user_id"`
 	OriginalId         string              `json:"original_id"`
 	Thumbnail          string              `json:"thumbnail"`
+	Path               string              `json:"path"`
 }
 
 type EncodedResolution struct {
@@ -54,6 +55,7 @@ func ProcessVideoEncodingCompletedMessage(data *VideoEncodingCompletedMessage) e
 		v.Resolution = fmt.Sprintf("%dx%d", data.Width, data.Height)
 		v.UserId = data.UserId
 		v.Thumbnail = data.Thumbnail
+		v.Path = data.Path
 
 		if err = tx.Save(&v).Error; err != nil {
 			log.Error("Create video failed %v", err)

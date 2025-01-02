@@ -2,8 +2,10 @@ package server
 
 import (
 	"context"
+	"path"
 
-	cons "github.com/sagarmaheshwary/microservices-video-catalog-service/internal/constant"
+	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/config"
+	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/constant"
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/grpc/client/user"
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/aws"
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/database"
@@ -13,7 +15,6 @@ import (
 	vcpb "github.com/sagarmaheshwary/microservices-video-catalog-service/internal/proto/video_catalog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"gorm.io/gorm/clause"
 )
 
 type videoCatalogServer struct {
@@ -33,7 +34,7 @@ func (v *videoCatalogServer) FindAll(ctx context.Context, data *vcpb.FindAllRequ
 	if err != nil {
 		log.Error("Unable to query data: %v", err)
 
-		return nil, status.Errorf(codes.Internal, cons.MessageInternalServerError)
+		return nil, status.Errorf(codes.Internal, constant.MessageInternalServerError)
 	}
 
 	for _, v := range rows {
@@ -42,7 +43,7 @@ func (v *videoCatalogServer) FindAll(ctx context.Context, data *vcpb.FindAllRequ
 		if err != nil {
 			log.Error("Unable to create thumbnail url: %v", err)
 
-			return nil, status.Errorf(codes.Internal, cons.MessageInternalServerError)
+			return nil, status.Errorf(codes.Internal, constant.MessageInternalServerError)
 		}
 
 		videos = append(videos, &vcpb.Video{
@@ -57,7 +58,7 @@ func (v *videoCatalogServer) FindAll(ctx context.Context, data *vcpb.FindAllRequ
 	}
 
 	response := &vcpb.FindAllResponse{
-		Message: cons.MessageOK,
+		Message: constant.MessageOK,
 		Data: &vcpb.FindAllResponseData{
 			Videos: videos,
 		},
@@ -70,14 +71,14 @@ func (v *videoCatalogServer) FindById(ctx context.Context, data *vcpb.FindByIdRe
 	row := new(model.Video)
 
 	err := database.DB.
-		Select("id", "title", "description", "thumbnail", "published_at", "duration", "resolution").
-		Order(clause.OrderByColumn{Column: clause.Column{Name: "created_at"}, Desc: true}).
+		Select("id", "title", "description", "thumbnail", "path", "published_at", "duration", "resolution").
+		Where(&model.Video{Id: uint(data.Id)}).
 		First(&row).Error
 
 	if err != nil {
 		log.Error("Unable to query data: %v", err)
 
-		return nil, status.Errorf(codes.NotFound, cons.MessageNotFound)
+		return nil, status.Errorf(codes.NotFound, constant.MessageNotFound)
 	}
 
 	thumbnailUrl, err := aws.CreateGetObjectPresignedUploadUrl(row.Thumbnail)
@@ -85,8 +86,10 @@ func (v *videoCatalogServer) FindById(ctx context.Context, data *vcpb.FindByIdRe
 	if err != nil {
 		log.Error("Unable to create thumbnail url: %v", err)
 
-		return nil, status.Errorf(codes.Internal, cons.MessageInternalServerError)
+		return nil, status.Errorf(codes.Internal, constant.MessageInternalServerError)
 	}
+
+	manifestUrl := path.Join(config.Conf.AWS.CloudFrontURL, row.Path, "master.mpd")
 
 	clientResponse, err := user.User.FindById(&usrpb.FindByIdRequest{
 		Id: int32(row.Id),
@@ -99,8 +102,9 @@ func (v *videoCatalogServer) FindById(ctx context.Context, data *vcpb.FindByIdRe
 	user := clientResponse.Data.User
 
 	response := &vcpb.FindByIdResponse{
-		Message: cons.MessageOK,
+		Message: constant.MessageOK,
 		Data: &vcpb.FindByIdResponseData{
+			ManifestUrl: manifestUrl,
 			Video: &vcpb.Video{
 				Id:           int32(row.Id),
 				Title:        row.Title,

@@ -15,7 +15,7 @@ type userClient struct {
 }
 
 func (u *userClient) FindById(data *pb.FindByIdRequest) (*pb.FindByIdResponse, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), config.GetgrpcClient().Timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), config.Conf.GRPCClient.Timeout)
 
 	defer cancel()
 

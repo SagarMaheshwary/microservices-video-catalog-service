@@ -11,7 +11,7 @@ import (
 )
 
 func Connect() {
-	c := config.GetgrpcServer()
+	c := config.Conf.GRPCServer
 
 	address := fmt.Sprintf("%s:%d", c.Host, c.Port)
 

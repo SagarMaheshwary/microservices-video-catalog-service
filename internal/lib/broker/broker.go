@@ -16,7 +16,7 @@ type MessageType struct {
 }
 
 func Connect() {
-	c := config.Getamqp()
+	c := config.Conf.AMQP
 
 	address := fmt.Sprintf("amqp://%s:%s@%s:%d", c.Username, c.Password, c.Host, c.Port)
 

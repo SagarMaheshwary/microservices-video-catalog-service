@@ -12,7 +12,7 @@ import (
 var DB *gorm.DB
 
 func Connect() {
-	c := config.GetDatabase()
+	c := config.Conf.Database
 
 	dns := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=%s",
 		c.Host,

@@ -11,17 +11,17 @@ import (
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/log"
 )
 
-var conf *Config
+var Conf *Config
 
 type Config struct {
-	GRPCServer *grpcServer
-	AMQP       *amqp
-	Database   *database
-	S3         *s3
-	GRPCClient *grpcClient
+	GRPCServer *GRPCServer
+	AMQP       *AMQP
+	Database   *Database
+	AWS        *AWS
+	GRPCClient *GRPCClient
 }
 
-type database struct {
+type Database struct {
 	Host     string
 	Port     string
 	Username string
@@ -31,28 +31,29 @@ type database struct {
 	Timezone string
 }
 
-type grpcServer struct {
+type GRPCServer struct {
 	Host string
 	Port int
 }
 
-type amqp struct {
+type AMQP struct {
 	Host     string
 	Port     int
 	Username string
 	Password string
 }
 
-type s3 struct {
-	Bucket             string
-	Region             string
-	AccessKey          string
-	SecretKey          string
-	PresignedUrlExpiry int
+type AWS struct {
+	Region               string
+	S3Bucket             string
+	AccessKey            string
+	SecretKey            string
+	S3PresignedURLExpiry int
+	CloudFrontURL        string
 }
 
-type grpcClient struct {
-	UserServiceurl string
+type GRPCClient struct {
+	UserServiceURL string
 	Timeout        time.Duration
 }
 
@@ -65,88 +66,61 @@ func Init() {
 
 	log.Info("Loaded %q", envPath)
 
-	port, err := strconv.Atoi(Getenv("GRPC_PORT", "5000"))
-
-	if err != nil {
-		log.Error("Invalid GRPC_PORT value %v", err)
-	}
-
-	amqpPort, err := strconv.Atoi(Getenv("AMQP_PORT", "5672"))
-
-	if err != nil {
-		log.Error("Invalid AMQP_PORT value %v", err)
-	}
-
-	s3UrlExpiry, err := strconv.Atoi(Getenv("AWS_S3_PRESIGNED_URL_EXPIRY", "0"))
-
-	if err != nil {
-		log.Error("Invalid AWS_S3_PRESIGNED_URL_EXPIRY value %v", err)
-	}
-
-	timeout, err := strconv.Atoi(Getenv("GRPC_CLIENT_TIMEOUT_SECONDS", "5"))
-
-	if err != nil {
-		log.Error("Invalid GRPC_CLIENT_TIMEOUT_SECONDS value %v", err)
-	}
-
-	conf = &Config{
-		GRPCServer: &grpcServer{
-			Host: Getenv("GRPC_HOST", "localhost"),
-			Port: port,
+	Conf = &Config{
+		GRPCServer: &GRPCServer{
+			Host: getEnv("GRPC_HOST", "localhost"),
+			Port: getEnvInt("GRPC_PORT", 5000),
 		},
-		AMQP: &amqp{
-			Host:     Getenv("AMQP_HOST", "localhost"),
-			Port:     amqpPort,
-			Username: Getenv("AMQP_USERNAME", "guest"),
-			Password: Getenv("AMQP_PASSWORD", "guest"),
+		AMQP: &AMQP{
+			Host:     getEnv("AMQP_HOST", "localhost"),
+			Port:     getEnvInt("AMQP_PORT", 5672),
+			Username: getEnv("AMQP_USERNAME", "guest"),
+			Password: getEnv("AMQP_PASSWORD", "guest"),
 		},
-		Database: &database{
-			Host:     Getenv("DB_HOST", "localhost"),
-			Port:     Getenv("DB_PORT", "5432"),
-			Username: Getenv("DB_USERNAME", "postgres"),
-			Password: Getenv("DB_PASSWORD", "password"),
-			Database: Getenv("DB_DATABASE", "microservices_video_catalog_service"),
-			SSLMode:  Getenv("DB_SSLMODE", "disable"),
-			Timezone: Getenv("DB_TIMEZONE", "UTC"),
+		Database: &Database{
+			Host:     getEnv("DB_HOST", "localhost"),
+			Port:     getEnv("DB_PORT", "5432"),
+			Username: getEnv("DB_USERNAME", "postgres"),
+			Password: getEnv("DB_PASSWORD", "password"),
+			Database: getEnv("DB_DATABASE", "microservices_video_catalog_service"),
+			SSLMode:  getEnv("DB_SSLMODE", "disable"),
+			Timezone: getEnv("DB_TIMEZONE", "UTC"),
 		},
-		S3: &s3{
-			Bucket:             Getenv("AWS_S3_BUCKET", ""),
-			Region:             Getenv("AWS_S3_REGION", ""),
-			AccessKey:          Getenv("AWS_S3_ACCESS_KEY", ""),
-			SecretKey:          Getenv("AWS_S3_SECRET_KEY", ""),
-			PresignedUrlExpiry: s3UrlExpiry,
+		AWS: &AWS{
+			Region:               getEnv("AWS_REGION", ""),
+			AccessKey:            getEnv("AWS_ACCESS_KEY", ""),
+			SecretKey:            getEnv("AWS_SECRET_KEY", ""),
+			S3Bucket:             getEnv("AWS_S3_BUCKET", ""),
+			S3PresignedURLExpiry: getEnvInt("AWS_S3_PRESIGNED_URL_EXPIRY", 15),
+			CloudFrontURL:        getEnv("AWS_CLOUDFRONT_URL", ""),
 		},
-		GRPCClient: &grpcClient{
-			UserServiceurl: Getenv("GRPC_USER_SERVICE_URL", "localhost:5000"),
-			Timeout:        time.Duration(timeout) * time.Second,
+		GRPCClient: &GRPCClient{
+			UserServiceURL: getEnv("GRPC_USER_SERVICE_URL", "localhost:5000"),
+			Timeout:        getEnvDuration("GRPC_CLIENT_TIMEOUT_SECONDS", 5),
 		},
 	}
 }
 
-func GetgrpcServer() *grpcServer {
-	return conf.GRPCServer
-}
-
-func Getamqp() *amqp {
-	return conf.AMQP
-}
-
-func GetDatabase() *database {
-	return conf.Database
-}
-
-func GetS3() *s3 {
-	return conf.S3
-}
-
-func GetgrpcClient() *grpcClient {
-	return conf.GRPCClient
-}
-
-func Getenv(key string, defaultVal string) string {
+func getEnv(key string, defaultVal string) string {
 	if val := os.Getenv(key); val != "" {
 		return val
 	}
 
 	return defaultVal
+}
+
+func getEnvInt(key string, defaultVal int) int {
+	if val, err := strconv.Atoi(os.Getenv(key)); err == nil {
+		return val
+	}
+
+	return defaultVal
+}
+
+func getEnvDuration(key string, defaultVal time.Duration) time.Duration {
+	if val, err := strconv.Atoi(os.Getenv(key)); err == nil {
+		return time.Duration(val) * time.Second
+	}
+
+	return defaultVal * time.Second
 }
