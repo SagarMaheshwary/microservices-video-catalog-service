@@ -21,14 +21,18 @@ func Connect() {
 	connection, err := grpc.Dial(address, options...)
 
 	if err != nil {
-		logger.Error("gRPC client failed to connect on %q: %v", address, err)
-	}
+		logger.Error("User gRPC failed to connect on %q: %v", address, err)
 
-	logger.Info("gRPC client connected on %q", address)
+		return
+	}
 
 	User = &userClient{
 		client: userpb.NewUserServiceClient(connection),
 		health: healthpb.NewHealthClient(connection),
+	}
+
+	if HealthCheck() {
+		logger.Info("User gRPC client connected on %q", address)
 	}
 }
 
