@@ -5,9 +5,10 @@ import (
 	"net"
 
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/config"
-	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/log"
-	pb "github.com/sagarmaheshwary/microservices-video-catalog-service/internal/proto/video_catalog"
+	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/logger"
+	videocatalogpb "github.com/sagarmaheshwary/microservices-video-catalog-service/internal/proto/video_catalog"
 	"google.golang.org/grpc"
+	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
 
 func Connect() {
@@ -18,18 +19,19 @@ func Connect() {
 	listener, err := net.Listen("tcp", address)
 
 	if err != nil {
-		log.Fatal("Failed to create tcp listner on %q: %v", address, err)
+		logger.Fatal("Failed to create tcp listner on %q: %v", address, err)
 	}
 
-	var opts []grpc.ServerOption
+	var options []grpc.ServerOption
 
-	grpcServer := grpc.NewServer(opts...)
+	server := grpc.NewServer(options...)
 
-	pb.RegisterVideoCatalogServiceServer(grpcServer, &videoCatalogServer{})
+	videocatalogpb.RegisterVideoCatalogServiceServer(server, &videoCatalogServer{})
+	healthpb.RegisterHealthServer(server, &healthServer{})
 
-	log.Info("gRPC server started on %q", address)
+	logger.Info("gRPC server started on %q", address)
 
-	if err := grpcServer.Serve(listener); err != nil {
-		log.Error("gRPC server failed to start %v", err)
+	if err := server.Serve(listener); err != nil {
+		logger.Error("gRPC server failed to start %v", err)
 	}
 }

@@ -1,29 +1,54 @@
 package user
 
 import (
+	"context"
+
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/config"
-	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/log"
-	pb "github.com/sagarmaheshwary/microservices-video-catalog-service/internal/proto/user"
+	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/logger"
+	userpb "github.com/sagarmaheshwary/microservices-video-catalog-service/internal/proto/user"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
 
 func Connect() {
-	var opts []grpc.DialOption
+	var options []grpc.DialOption
 
-	opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	options = append(options, grpc.WithTransportCredentials(insecure.NewCredentials()))
 
 	address := config.Conf.GRPCClient.UserServiceURL
 
-	conn, err := grpc.Dial(address, opts...)
+	connection, err := grpc.Dial(address, options...)
 
 	if err != nil {
-		log.Error("gRPC client failed to connect on %q: %v", address, err)
+		logger.Error("gRPC client failed to connect on %q: %v", address, err)
 	}
 
-	log.Info("gRPC client connected on %q", address)
+	logger.Info("gRPC client connected on %q", address)
 
 	User = &userClient{
-		client: pb.NewUserServiceClient(conn),
+		client: userpb.NewUserServiceClient(connection),
+		health: healthpb.NewHealthClient(connection),
 	}
+}
+
+func HealthCheck() bool {
+	ctx, cancel := context.WithTimeout(context.Background(), config.Conf.GRPCClient.Timeout)
+	defer cancel()
+
+	response, err := User.health.Check(ctx, &healthpb.HealthCheckRequest{})
+
+	if err != nil {
+		logger.Error("User gRPC health check failed! %v", err)
+
+		return false
+	}
+
+	if response.Status == healthpb.HealthCheckResponse_NOT_SERVING {
+		logger.Error("User gRPC health check failed!")
+
+		return false
+	}
+
+	return true
 }

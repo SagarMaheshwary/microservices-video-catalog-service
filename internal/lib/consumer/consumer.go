@@ -7,7 +7,7 @@ import (
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/constant"
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/handler"
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/broker"
-	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/log"
+	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/logger"
 )
 
 var C *Consumer
@@ -17,7 +17,7 @@ type Consumer struct {
 }
 
 func (c *Consumer) Consume() {
-	q, err := c.channel.QueueDeclare(
+	queue, err := c.channel.QueueDeclare(
 		constant.QueueVideoCatalogService, // name
 		true,                              // durable
 		false,                             // delete when unused
@@ -27,24 +27,24 @@ func (c *Consumer) Consume() {
 	)
 
 	if err != nil {
-		log.Error("AMQP queue error %v", err)
+		logger.Error("AMQP queue error %v", err)
 	}
 
 	messages, err := c.channel.Consume(
-		q.Name, // queue
-		"",     // consumer
-		false,  // auto-ack
-		false,  // exclusive
-		false,  // no-local
-		false,  // no-wait
-		nil,    // args
+		queue.Name, // queue
+		"",         // consumer
+		false,      // auto-ack
+		false,      // exclusive
+		false,      // no-local
+		false,      // no-wait
+		nil,        // args
 	)
 
 	if err != nil {
-		log.Fatal("Broker queue listen failed %v", err)
+		logger.Fatal("Broker queue listen failed %v", err)
 	}
 
-	log.Info("Broker listening on queue %q", constant.QueueVideoCatalogService)
+	logger.Info("Broker listening on queue %q", constant.QueueVideoCatalogService)
 
 	var forever chan struct{}
 
@@ -54,7 +54,7 @@ func (c *Consumer) Consume() {
 
 			json.Unmarshal(message.Body, &m)
 
-			log.Info("AMQP message received json %q: %s", m.Key, message.Body)
+			logger.Info("AMQP message received json %q: %s", m.Key, message.Body)
 
 			switch m.Key {
 			case constant.MessageTypeVideoEncodingCompleted:
@@ -72,7 +72,7 @@ func (c *Consumer) Consume() {
 				if err == nil {
 					message.Ack(false)
 				} else {
-					log.Error("Failed to process message %s: %s", m.Key, err)
+					logger.Error("Failed to process message %s: %s", m.Key, err)
 				}
 			}
 		}

@@ -8,7 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/config"
-	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/log"
+	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/logger"
 )
 
 func NewSession() (*session.Session, error) {
@@ -20,7 +20,7 @@ func NewSession() (*session.Session, error) {
 	})
 
 	if err != nil {
-		log.Error("Unable to create aws session: %v", err)
+		logger.Error("Unable to create aws session: %v", err)
 
 		return nil, err
 	}
@@ -30,25 +30,25 @@ func NewSession() (*session.Session, error) {
 
 func CreateGetObjectPresignedUploadUrl(key string) (string, error) {
 	c := config.Conf.AWS
-	sess, err := NewSession()
+	s, err := NewSession()
 
 	if err != nil {
 		return "", err
 	}
 
-	svc := s3.New(sess)
+	svc := s3.New(s)
 
-	req, _ := svc.GetObjectRequest(&s3.GetObjectInput{
+	r, _ := svc.GetObjectRequest(&s3.GetObjectInput{
 		Bucket: awslib.String(c.S3Bucket),
 		Key:    awslib.String(key),
 	})
 
-	url, err := req.Presign(
+	url, err := r.Presign(
 		time.Duration(time.Duration(c.S3PresignedURLExpiry) * time.Minute),
 	)
 
 	if err != nil {
-		log.Error("Unable to create presigned upload url: %v", err)
+		logger.Error("Unable to create presigned upload url: %v", err)
 
 		return "", err
 	}

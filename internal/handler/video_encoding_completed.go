@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/database"
-	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/log"
+	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/logger"
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/model"
 )
 
@@ -33,19 +33,19 @@ func ProcessVideoEncodingCompletedMessage(data *VideoEncodingCompletedMessage) e
 	publishedAt, err := time.Parse(time.RFC3339, data.PublishedAt)
 
 	if err != nil {
-		log.Error("Invalid PublishedAt time format %v", err)
+		logger.Error("Invalid PublishedAt time format %v", err)
 
 		return err
 	}
 
-	tx := database.DB.Begin()
+	tx := database.Conn.Begin()
 
 	v := new(model.Video)
 
 	res := tx.First(&v, "original_id = ?", data.OriginalId)
 
 	if res.Error != nil {
-		log.Info("Processing video row.")
+		logger.Info("Processing video row.")
 
 		v.Title = data.Title
 		v.Description = data.Description
@@ -58,14 +58,14 @@ func ProcessVideoEncodingCompletedMessage(data *VideoEncodingCompletedMessage) e
 		v.Path = data.Path
 
 		if err = tx.Save(&v).Error; err != nil {
-			log.Error("Create video failed %v", err)
+			logger.Error("Create video failed %v", err)
 			tx.Rollback()
 
 			return err
 		}
 	}
 
-	log.Info("Processing video_chunk rows.")
+	logger.Info("Processing video_chunk rows.")
 
 	for _, r := range data.EncodedResolutions {
 		for _, c := range r.Chunks {
@@ -80,7 +80,7 @@ func ProcessVideoEncodingCompletedMessage(data *VideoEncodingCompletedMessage) e
 				vc.Filename = c
 
 				if err := tx.Save(&vc).Error; err != nil {
-					log.Error("Create video_chunk failed %v", err)
+					logger.Error("Create video_chunk failed %v", err)
 					tx.Rollback()
 
 					return err
@@ -95,7 +95,7 @@ func ProcessVideoEncodingCompletedMessage(data *VideoEncodingCompletedMessage) e
 		return err
 	}
 
-	log.Info("Transaction committed.")
+	logger.Info("Transaction committed.")
 
 	return nil
 }

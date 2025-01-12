@@ -8,7 +8,7 @@ import (
 
 	"github.com/gofor-little/env"
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/helper"
-	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/log"
+	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/logger"
 )
 
 var Conf *Config
@@ -58,13 +58,13 @@ type GRPCClient struct {
 }
 
 func Init() {
-	envPath := path.Join(helper.RootDir(), "..", ".env")
+	envPath := path.Join(helper.GetRootDir(), "..", ".env")
 
 	if err := env.Load(envPath); err != nil {
-		log.Fatal("Failed to load .env %q: %v", envPath, err)
+		logger.Fatal("Failed to load .env %q: %v", envPath, err)
 	}
 
-	log.Info("Loaded %q", envPath)
+	logger.Info("Loaded %q", envPath)
 
 	Conf = &Config{
 		GRPCServer: &GRPCServer{
