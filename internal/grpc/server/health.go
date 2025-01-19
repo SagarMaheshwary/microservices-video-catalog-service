@@ -7,6 +7,7 @@ import (
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/broker"
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/database"
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/logger"
+	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/prometheus"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
 
@@ -19,9 +20,17 @@ func (h *healthServer) Check(ctx context.Context, req *healthpb.HealthCheckReque
 
 	logger.Info("Overall health status: %q", status)
 
-	return &healthpb.HealthCheckResponse{
+	response := &healthpb.HealthCheckResponse{
 		Status: status,
-	}, nil
+	}
+
+	if status == healthpb.HealthCheckResponse_NOT_SERVING {
+		prometheus.ServiceHealth.Set(0)
+		return response, nil
+	}
+
+	prometheus.ServiceHealth.Set(1)
+	return response, nil
 }
 
 func getServicesHealthStatus() healthpb.HealthCheckResponse_ServingStatus {

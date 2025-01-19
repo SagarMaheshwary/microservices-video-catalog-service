@@ -8,6 +8,7 @@ import (
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/consumer"
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/database"
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/logger"
+	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/prometheus"
 )
 
 func main() {
@@ -32,5 +33,10 @@ func main() {
 	}()
 
 	userrpc.Connect()
+
+	go func() {
+		prometheus.Connect()
+	}()
+
 	server.Connect()
 }

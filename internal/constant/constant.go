@@ -18,3 +18,5 @@ const (
 const (
 	MessageTypeVideoEncodingCompleted = "VideoEncodingCompleted"
 )
+
+const MPEGDASHManifestFile = "master.mpd"

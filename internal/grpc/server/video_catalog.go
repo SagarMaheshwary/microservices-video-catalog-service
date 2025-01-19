@@ -97,7 +97,7 @@ func (v *videoCatalogServer) FindById(ctx context.Context, data *videocatalogpb.
 		return nil, status.Errorf(codes.Internal, constant.MessageInternalServerError)
 	}
 
-	manifestURL := path.Join(config.Conf.AWS.CloudFrontURL, video.Path, "master.mpd")
+	manifestURL := path.Join(config.Conf.AWS.CloudFrontURL, video.Path, constant.MPEGDASHManifestFile)
 
 	response := &videocatalogpb.FindByIdResponse{
 		Message: constant.MessageOK,

@@ -19,6 +19,7 @@ type Config struct {
 	Database   *Database
 	AWS        *AWS
 	GRPCClient *GRPCClient
+	Prometheus *Prometheus
 }
 
 type Database struct {
@@ -57,6 +58,11 @@ type GRPCClient struct {
 	Timeout        time.Duration
 }
 
+type Prometheus struct {
+	METRICS_HOST string
+	METRICS_PORT int
+}
+
 func Init() {
 	envPath := path.Join(helper.GetRootDir(), "..", ".env")
 
@@ -69,7 +75,7 @@ func Init() {
 	Conf = &Config{
 		GRPCServer: &GRPCServer{
 			Host: getEnv("GRPC_HOST", "localhost"),
-			Port: getEnvInt("GRPC_PORT", 5000),
+			Port: getEnvInt("GRPC_PORT", 5003),
 		},
 		AMQP: &AMQP{
 			Host:     getEnv("AMQP_HOST", "localhost"),
@@ -97,6 +103,10 @@ func Init() {
 		GRPCClient: &GRPCClient{
 			UserServiceURL: getEnv("GRPC_USER_SERVICE_URL", "localhost:5000"),
 			Timeout:        getEnvDuration("GRPC_CLIENT_TIMEOUT_SECONDS", 5),
+		},
+		Prometheus: &Prometheus{
+			METRICS_HOST: getEnv("PROMETHEUS_METRICS_HOST", "localhost"),
+			METRICS_PORT: getEnvInt("PROMETHEUS_METRICS_PORT", 5013),
 		},
 	}
 }
