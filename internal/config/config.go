@@ -59,8 +59,8 @@ type GRPCClient struct {
 }
 
 type Prometheus struct {
-	METRICS_HOST string
-	METRICS_PORT int
+	MetricsHost string
+	MetricsPort int
 }
 
 func Init() {
@@ -105,8 +105,8 @@ func Init() {
 			Timeout:        getEnvDuration("GRPC_CLIENT_TIMEOUT_SECONDS", 5),
 		},
 		Prometheus: &Prometheus{
-			METRICS_HOST: getEnv("PROMETHEUS_METRICS_HOST", "localhost"),
-			METRICS_PORT: getEnvInt("PROMETHEUS_METRICS_PORT", 5013),
+			MetricsHost: getEnv("PROMETHEUS_METRICS_HOST", "localhost"),
+			MetricsPort: getEnvInt("PROMETHEUS_METRICS_PORT", 5013),
 		},
 	}
 }

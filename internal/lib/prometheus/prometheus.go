@@ -32,14 +32,46 @@ var (
 		Name: "service_health_status",
 		Help: "Health status of the service: 1=Healthy, 0=Unhealthy",
 	})
+
+	TotalMessagesCounter = prometheuslib.NewCounterVec(
+		prometheuslib.CounterOpts{
+			Name: "messages_total",
+			Help: "Total number of messages received from RabbitMQ",
+		},
+		[]string{"message_type"},
+	)
+
+	MessageProcessingDuration = prometheuslib.NewHistogramVec(
+		prometheuslib.HistogramOpts{
+			Name:    "message_processing_duration_seconds",
+			Help:    "Time taken to process each message.",
+			Buckets: prometheuslib.DefBuckets,
+		},
+		[]string{"message_type"},
+	)
+
+	MessageProcessingErrorsCounter = prometheuslib.NewCounterVec(
+		prometheuslib.CounterOpts{
+			Name: "message_processing_errors_total",
+			Help: "Total number of message processing failures.",
+		},
+		[]string{"message_type", "reason"},
+	)
 )
 
 func Connect() {
 	c := config.Conf.Prometheus
 
-	prometheuslib.MustRegister(GRPCRequestCounter, GRPCRequestLatency, ServiceHealth)
+	prometheuslib.MustRegister(
+		GRPCRequestCounter,
+		GRPCRequestLatency,
+		ServiceHealth,
+		MessageProcessingDuration,
+		MessageProcessingErrorsCounter,
+		TotalMessagesCounter,
+	)
 
-	address := fmt.Sprintf("%s:%d", c.METRICS_HOST, c.METRICS_PORT)
+	address := fmt.Sprintf("%s:%d", c.MetricsHost, c.MetricsPort)
 
 	http.Handle("/metrics", promhttp.Handler())
 

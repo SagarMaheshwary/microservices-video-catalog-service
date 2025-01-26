@@ -2,12 +2,14 @@ package consumer
 
 import (
 	"encoding/json"
+	"time"
 
 	amqplib "github.com/rabbitmq/amqp091-go"
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/constant"
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/handler"
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/broker"
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/logger"
+	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/prometheus"
 )
 
 var C *Consumer
@@ -56,6 +58,9 @@ func (c *Consumer) Consume() {
 
 			logger.Info("AMQP message received json %q: %s", m.Key, message.Body)
 
+			prometheus.TotalMessagesCounter.WithLabelValues(m.Key).Inc()
+			start := time.Now()
+
 			switch m.Key {
 			case constant.MessageTypeVideoEncodingCompleted:
 				type MessageType struct {
@@ -71,8 +76,10 @@ func (c *Consumer) Consume() {
 
 				if err == nil {
 					message.Ack(false)
+					prometheus.MessageProcessingDuration.WithLabelValues(m.Key).Observe(time.Since(start).Seconds())
 				} else {
 					logger.Error("Failed to process message %s: %s", m.Key, err)
+					prometheus.MessageProcessingErrorsCounter.WithLabelValues(m.Key, err.Error()).Inc()
 				}
 			}
 		}
