@@ -5,6 +5,7 @@ import (
 
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/config"
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/logger"
+	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/model"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -30,6 +31,8 @@ func Connect() {
 	if err != nil {
 		logger.Fatal("Database failed to connect on %q: %v", dsn, err)
 	}
+
+	Conn.AutoMigrate(&model.Video{})
 
 	logger.Info("Database server connected on %q", dsn)
 }

@@ -72,7 +72,7 @@ func (v *videoCatalogServer) FindById(ctx context.Context, data *videocatalogpb.
 
 	err := database.Conn.
 		Select("id", "title", "description", "thumbnail", "path", "published_at", "duration", "resolution").
-		Where(&model.Video{Id: uint(data.Id)}).
+		Where(&model.Video{Id: uint64(data.Id)}).
 		First(&video).Error
 
 	if err != nil {

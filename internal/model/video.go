@@ -3,16 +3,20 @@ package model
 import "time"
 
 type Video struct {
-	Id          uint      `json:"id" gorm:"primaryKey"`
-	UserId      int       `json:"user_id"`
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	OriginalId  string    `json:"original_id"`
-	Resolution  string    `json:"resolution"`
-	Duration    int       `json:"duration"`
-	Path        string    `json:"path"`
-	Thumbnail   string    `json:"thumbnail"`
-	PublishedAt time.Time `json:"published_at"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	Id          uint64     `gorm:"primaryKey;autoIncrement;column:id"`
+	Title       string     `gorm:"type:varchar(250);not null;column:title"`
+	Description string     `gorm:"type:text;not null;column:description"`
+	OriginalId  string     `gorm:"type:varchar(50);not null;column:original_id"`
+	UserId      uint64     `gorm:"not null;column:user_id"`
+	Resolution  string     `gorm:"type:varchar(25);not null;column:resolution"`
+	Duration    int        `gorm:"not null;column:duration"`
+	Path        string     `gorm:"type:varchar(250);not null;column:path"`
+	Thumbnail   string     `gorm:"type:varchar(250);not null;column:thumbnail"`
+	PublishedAt time.Time  `gorm:"not null;column:published_at"`
+	CreatedAt   time.Time  `gorm:"default:CURRENT_TIMESTAMP;column:created_at"`
+	UpdatedAt   *time.Time `gorm:"column:updated_at"`
+}
+
+func (Video) TableName() string {
+	return "videos"
 }
