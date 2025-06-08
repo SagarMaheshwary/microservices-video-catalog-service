@@ -20,3 +20,7 @@ const (
 )
 
 const MPEGDASHManifestFile = "master.mpd"
+
+const ServiceName = "Video Catalog Service"
+
+const TraceTypeRabbitMQConsume = "RabbitMQ Consume"

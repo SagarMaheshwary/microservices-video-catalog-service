@@ -16,8 +16,8 @@ type userClient struct {
 	health healthpb.HealthClient
 }
 
-func (u *userClient) FindById(data *userpb.FindByIdRequest) (*userpb.FindByIdResponse, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), config.Conf.GRPCClient.Timeout)
+func (u *userClient) FindById(ctx context.Context, data *userpb.FindByIdRequest) (*userpb.FindByIdResponse, error) {
+	ctx, cancel := context.WithTimeout(ctx, config.Conf.GRPCClient.Timeout)
 
 	defer cancel()
 

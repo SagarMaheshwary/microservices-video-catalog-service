@@ -20,6 +20,7 @@ type Config struct {
 	AWS        *AWS
 	GRPCClient *GRPCClient
 	Prometheus *Prometheus
+	Jaeger     *Jaeger
 }
 
 type Database struct {
@@ -59,8 +60,11 @@ type GRPCClient struct {
 }
 
 type Prometheus struct {
-	MetricsHost string
-	MetricsPort int
+	URL string
+}
+
+type Jaeger struct {
+	URL string
 }
 
 func Init() {
@@ -109,8 +113,10 @@ func Init() {
 			Timeout:        getEnvDuration("GRPC_CLIENT_TIMEOUT_SECONDS", 5),
 		},
 		Prometheus: &Prometheus{
-			MetricsHost: getEnv("PROMETHEUS_METRICS_HOST", "localhost"),
-			MetricsPort: getEnvInt("PROMETHEUS_METRICS_PORT", 5013),
+			URL: getEnv("PROMETHEUS_URL", "localhost:5013"),
+		},
+		Jaeger: &Jaeger{
+			URL: getEnv("JAEGER_URL", "localhost:4318"),
 		},
 	}
 }

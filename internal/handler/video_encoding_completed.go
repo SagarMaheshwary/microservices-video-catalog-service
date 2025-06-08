@@ -7,6 +7,7 @@ import (
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/database"
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/logger"
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/model"
+	"golang.org/x/net/context"
 )
 
 type VideoEncodingCompletedMessage struct {
@@ -22,7 +23,7 @@ type VideoEncodingCompletedMessage struct {
 	Path            string `json:"path"`
 }
 
-func ProcessVideoEncodingCompletedMessage(data *VideoEncodingCompletedMessage) error {
+func ProcessVideoEncodingCompletedMessage(ctx context.Context, data *VideoEncodingCompletedMessage) error {
 	publishedAt, err := time.Parse(time.RFC3339, data.PublishedAt)
 
 	if err != nil {

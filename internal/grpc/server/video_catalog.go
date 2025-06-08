@@ -81,7 +81,7 @@ func (v *videoCatalogServer) FindById(ctx context.Context, data *videocatalogpb.
 		return nil, status.Errorf(codes.NotFound, constant.MessageNotFound)
 	}
 
-	u, err := user.User.FindById(&userpb.FindByIdRequest{
+	u, err := user.User.FindById(ctx, &userpb.FindByIdRequest{
 		Id: int32(video.Id),
 	})
 
