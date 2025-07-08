@@ -1,21 +1,46 @@
 package broker
 
 import (
+	"context"
 	"fmt"
+	"sync"
+	"time"
 
 	amqplib "github.com/rabbitmq/amqp091-go"
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/config"
+	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/consumer"
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/logger"
 )
 
 var Conn *amqplib.Connection
 
-type MessageType struct {
-	Key  string `json:"key"`
-	Data any    `json:"data"`
+var (
+	reconnectLock sync.Mutex
+	retries       = 10
+	interval      = 5
+)
+
+func MaintainConnection(ctx context.Context) {
+	if err := connect(); err != nil {
+		logger.Error("Initial AMQP connection attempt failed: %v", err)
+	}
+
+	t := time.NewTicker(time.Second * time.Duration(interval))
+	defer t.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+			if err := tryReconnect(); err != nil {
+				return
+			}
+		}
+	}
 }
 
-func Connect() {
+func connect() error {
 	c := config.Conf.AMQP
 
 	address := fmt.Sprintf("amqp://%s:%s@%s:%d", c.Username, c.Password, c.Host, c.Port)
@@ -25,10 +50,47 @@ func Connect() {
 	Conn, err = amqplib.Dial(address)
 
 	if err != nil {
-		logger.Fatal("Broker connection error %v", err)
+		logger.Error("Broker connection error %v", err)
+
+		return err
 	}
 
 	logger.Info("Broker connected on %q", address)
+
+	channel, err := NewChannel()
+
+	if err != nil {
+		logger.Error("Unable to create listen channel %v", err)
+
+		return err
+	}
+
+	go func() {
+		consumer.Init(channel).Consume()
+	}()
+
+	return nil
+}
+
+func tryReconnect() error {
+	reconnectLock.Lock()
+	defer reconnectLock.Unlock()
+
+	if HealthCheck() {
+		return nil
+	}
+
+	for i := 0; i < retries; i++ {
+		logger.Info("AMQP connection attempt: %d", i+1)
+
+		if err := connect(); err == nil {
+			return nil
+		}
+
+		time.Sleep(time.Duration(interval*(i+1)) * time.Second)
+	}
+
+	return fmt.Errorf("could not reconnect after %d retries", retries)
 }
 
 func NewChannel() (*amqplib.Channel, error) {
@@ -45,7 +107,7 @@ func NewChannel() (*amqplib.Channel, error) {
 
 func HealthCheck() bool {
 	if Conn == nil || Conn.IsClosed() {
-		logger.Info("AMQP health check failed!")
+		logger.Warn("AMQP health check failed!")
 
 		return false
 	}

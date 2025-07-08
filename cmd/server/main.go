@@ -2,13 +2,14 @@ package main
 
 import (
 	"context"
-	"log"
+	"os"
+	"os/signal"
+	"time"
 
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/config"
 	userrpc "github.com/sagarmaheshwary/microservices-video-catalog-service/internal/grpc/client/user"
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/grpc/server"
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/broker"
-	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/consumer"
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/database"
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/jaeger"
 	"github.com/sagarmaheshwary/microservices-video-catalog-service/internal/lib/logger"
@@ -19,36 +20,43 @@ func main() {
 	logger.Init()
 	config.Init()
 
-	ctx := context.Background()
-	shutdown := jaeger.Init(ctx)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
 
-	defer func() {
-		if err := shutdown(ctx); err != nil {
-			log.Fatalf("failed to shutdown jaeger tracer: %v", err)
-		}
-	}()
-
-	go func() {
-		prometheus.Connect()
-	}()
+	shutdownJaeger := jaeger.Init(ctx)
 
 	database.Connect()
 
-	broker.Connect()
-	defer broker.Conn.Close()
+	promServer := prometheus.NewServer()
+	go prometheus.Serve(promServer)
 
-	channel, err := broker.NewChannel()
+	go broker.MaintainConnection(ctx)
 
-	if err != nil {
-		logger.Fatal("Unable to create listen channel %v", err)
+	userrpc.NewClient(ctx)
+
+	grpcServer := server.NewServer()
+	go server.Serve(grpcServer)
+
+	<-ctx.Done()
+
+	logger.Info("Shutdown signal received")
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := promServer.Shutdown(shutdownCtx); err != nil {
+		logger.Warn("Prometheus server shutdown error: %v", err)
 	}
 
-	c := consumer.Init(channel)
+	shutdownCtx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-	go func() {
-		c.Consume()
-	}()
+	if err := shutdownJaeger(shutdownCtx); err != nil {
+		logger.Warn("failed to shutdown jaeger tracer: %v", err)
+	}
 
-	userrpc.Connect(ctx)
-	server.Connect()
+	grpcServer.GracefulStop()
+
+	database.Close()
+
+	logger.Info("Shutdown complete")
 }

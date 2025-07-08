@@ -37,6 +37,18 @@ func Connect() {
 	logger.Info("Database server connected on %q", dsn)
 }
 
+func Close() {
+	sqlDB, err := Conn.DB()
+	if err != nil {
+		logger.Error("Failed to close DB connection %v", err)
+		return
+	}
+
+	if err := sqlDB.Close(); err != nil {
+		logger.Error("Error closing DB connection: %v", err)
+	}
+}
+
 func HealthCheck() bool {
 	sqlDB, err := Conn.DB()
 

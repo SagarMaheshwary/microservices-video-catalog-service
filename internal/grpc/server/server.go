@@ -17,17 +17,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func Connect() {
-	c := config.Conf.GRPCServer
-
-	address := fmt.Sprintf("%s:%d", c.Host, c.Port)
-
-	listener, err := net.Listen("tcp", address)
-
-	if err != nil {
-		logger.Fatal("Failed to create tcp listner on %q: %v", address, err)
-	}
-
+func NewServer() *grpc.Server {
 	server := grpc.NewServer(
 		grpc.UnaryInterceptor(prometheusUnaryInterceptor),
 		grpc.StatsHandler(otelgrpc.NewServerHandler(
@@ -39,9 +29,23 @@ func Connect() {
 	videocatalogpb.RegisterVideoCatalogServiceServer(server, &videoCatalogServer{})
 	healthpb.RegisterHealthServer(server, &healthServer{})
 
+	return server
+}
+
+func Serve(grpcServer *grpc.Server) {
+	c := config.Conf.GRPCServer
+
+	address := fmt.Sprintf("%s:%d", c.Host, c.Port)
+
+	listener, err := net.Listen("tcp", address)
+
+	if err != nil {
+		logger.Fatal("Failed to create tcp listner on %q: %v", address, err)
+	}
+
 	logger.Info("gRPC server started on %q", address)
 
-	if err := server.Serve(listener); err != nil {
+	if err := grpcServer.Serve(listener); err != nil {
 		logger.Error("gRPC server failed to start %v", err)
 	}
 }
