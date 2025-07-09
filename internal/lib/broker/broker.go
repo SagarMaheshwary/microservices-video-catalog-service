@@ -65,9 +65,7 @@ func connect() error {
 		return err
 	}
 
-	go func() {
-		consumer.Init(channel).Consume()
-	}()
+	go consumer.Init(channel).Consume()
 
 	return nil
 }
@@ -80,14 +78,16 @@ func tryReconnect() error {
 		return nil
 	}
 
-	for i := 0; i < retries; i++ {
+	for i := range retries {
 		logger.Info("AMQP connection attempt: %d", i+1)
 
 		if err := connect(); err == nil {
 			return nil
 		}
 
-		time.Sleep(time.Duration(interval*(i+1)) * time.Second)
+		if i+1 < retries {
+			time.Sleep(time.Duration(interval*(i+1)) * time.Second)
+		}
 	}
 
 	return fmt.Errorf("could not reconnect after %d retries", retries)

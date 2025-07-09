@@ -43,15 +43,14 @@ func main() {
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if err := promServer.Shutdown(shutdownCtx); err != nil {
-		logger.Warn("Prometheus server shutdown error: %v", err)
+	if err := shutdownJaeger(shutdownCtx); err != nil {
+		logger.Warn("failed to shutdown jaeger tracer: %v", err)
 	}
 
 	shutdownCtx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-
-	if err := shutdownJaeger(shutdownCtx); err != nil {
-		logger.Warn("failed to shutdown jaeger tracer: %v", err)
+	if err := promServer.Shutdown(shutdownCtx); err != nil {
+		logger.Warn("Prometheus server shutdown error: %v", err)
 	}
 
 	grpcServer.GracefulStop()

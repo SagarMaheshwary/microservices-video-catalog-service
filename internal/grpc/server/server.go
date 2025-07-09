@@ -32,7 +32,7 @@ func NewServer() *grpc.Server {
 	return server
 }
 
-func Serve(grpcServer *grpc.Server) {
+func Serve(server *grpc.Server) {
 	c := config.Conf.GRPCServer
 
 	address := fmt.Sprintf("%s:%d", c.Host, c.Port)
@@ -45,7 +45,7 @@ func Serve(grpcServer *grpc.Server) {
 
 	logger.Info("gRPC server started on %q", address)
 
-	if err := grpcServer.Serve(listener); err != nil {
+	if err := server.Serve(listener); err != nil {
 		logger.Error("gRPC server failed to start %v", err)
 	}
 }
